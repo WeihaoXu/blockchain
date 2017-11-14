@@ -2,8 +2,6 @@ import datetime
 import hashlib
 import json
 
-
-
 class Block:
     TARGET_DIGITS = 3
     def __init__(self, prev_hash, data, timestamp=None, nonce=None, hashcode = None):
