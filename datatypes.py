@@ -25,7 +25,7 @@ class Block:
             'data': self.data,
             'hashcode': self.hashcode
         }
-        return json.dumps(block_dict, indent=4)
+        return json.dumps(block_dict, sort_keys=True, indent=4)
 
     def proof_of_work(self):
         nonce = 1
@@ -72,7 +72,7 @@ class BlockChain:
         blockchain_dict = {
             'blocks': [block.serialize() for block in self.blocks]
         }
-        return json.dumps(blockchain_dict, indent=4)
+        return json.dumps(blockchain_dict, sort_keys=True, indent=4)
 
     def serialize(self):
         return str(self)
