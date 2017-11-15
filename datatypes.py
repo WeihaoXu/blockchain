@@ -24,7 +24,7 @@ class Transaction:
 
 class Block:
     TARGET_DIGITS = 3
-    MINER_REWARD=1
+    MINER_REWARD= 1
     def __init__(self, prev_hash, transactions):
         self.prev_hash = prev_hash
         self.transactions = transactions 
@@ -82,7 +82,7 @@ class BlockChain:
     def __str__(self):
         string = ""
         for block in self.blocks:
-            string = str(block) + '\n'
+            string = string + str(block) + '\n'
         return string
 
             
