@@ -17,7 +17,6 @@ import requests
 
 class Mine(MethodView):
     def get(self):
-        print("mine called")
         blockchain, pending_transactions = nodedata.blockchain, nodedata.pending_transactions
         txs_to_include = self.select_transactions()
         block = blockchain.mine_block(__name__, txs_to_include)
@@ -39,19 +38,16 @@ class Mine(MethodView):
 
 
     def broadcast_new_block(self, block):
-        print("broadcast called")
         #TODO send messages to other miners
         block_dict = block.to_dict()
         current_port = current_app.config['port']
         ports = current_app.config['port_list']
-        print("ports:{}".format(ports))
         for peer_port in ports:
             if peer_port == current_port:
                 continue
             self.send_Block_Info(peer_port, block_dict)
 
     def send_Block_Info(self, port, block_dict):
-        print("sendBlockInfo called")
         message = {
             'miner': current_app.config['port'],
             'block': block_dict
@@ -59,13 +55,9 @@ class Mine(MethodView):
         url = 'http://localhost:{}/receive_block'.format(port)
         #res = requests.post(url, data=json.dumps({'name': 'weihao'}))
         res = requests.post(url, data=json.dumps(message))
-
-        print("message to send: {}".format(json.dumps(message, indent=4)))
-        print("sendBlockInfo complete")
         
 class ReceiveBlock(MethodView):
     def post(self):
-        print("block post received ")
         data = flask.request.data
         data = json.loads(data.decode('utf-8'))
         print(data)
