@@ -11,23 +11,34 @@ class Transaction:
         self.sender = sender
         self.receiver = receiver
         self.value = value
-        self.hash = self.calculate_hash()
+        self.timestamp = str(datetime.datetime.now())
+        self.hashcode = self.calculate_hash()
+
 
     def to_dict(self):
         tx_dict = {
+            'timestamp': self.timestamp,
             'sender': self.sender,
             'receiver': self.receiver,
             'value': self.value
         }
         return tx_dict
 
+    def calculate_hash(self):
+        tx_str = str(self)
+        return hashlib.sha256(tx_str.encode("utf-8")).hexdigest()
+
     def __str__(self):
         tx_dict = self.to_dict()
         return json.dumps(tx_dict, sort_keys=True, indent=4)
 
-    def calculate_hash(self):
-        tx_str = str(self)
-        return hashlib.sha256(tx_str.encode("utf-8")).hexdigest()
+
+    def __eq__(self, other):
+        return isinstance(other, Transaction) and ([self.sender, self.receiver, self.value, self.timestamp, self.hashcode] 
+            == [other.sender, other.receiver, other.value, other.timestamp, other.hashcode])
+
+    def __hash__(self):
+        return hash((self.sender, self.receiver, self.value, self.timestamp, self.hashcode))
 
     @staticmethod
     def reward_transaction(miner):
@@ -91,7 +102,7 @@ class Block:
     def transactions_hash(self):
         hashcode = hashlib.sha256()
         for tx in self.transactions:
-            hashcode.update(tx.hash.encode('utf-8'))
+            hashcode.update(tx.hashcode.encode('utf-8'))
         return hashcode.hexdigest()
             
     @staticmethod
