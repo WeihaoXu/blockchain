@@ -1,8 +1,8 @@
-from datatypes import Block, BlockChain, Transaction
+from datatypes import Block, BlockChain, Transaction, TransactionPool
 
 
 HOST = 'localhost'
 MAX_TX_PER_BLOCK = 10
 
 blockchain = BlockChain()
-pending_transactions = set()
+transaction_pool = TransactionPool() 

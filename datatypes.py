@@ -4,6 +4,7 @@ import json
 from threading import Lock
 
 
+
 class Transaction:
     MINER_REWARD= 1
     def __init__(self, sender, receiver, value):
@@ -34,15 +35,26 @@ class Transaction:
 
         
 
+class TransactionPool:
+    def __init__(self):
+        self.transactions = set()
+        self.lock = Lock()
+
 
 
 class Block:
     TARGET_DIGITS = 4
-    def __init__(self, prev_hash, transactions):
+    def __init__(self, prev_hash, transactions, timestamp=None, nonce=None, hashcode=None):
         self.prev_hash = prev_hash
         self.transactions = transactions 
-        self.timestamp = str(datetime.datetime.now())
-        self.nonce, self.hashcode = self.proof_of_work()
+        if timestamp and nonce and hashcode:  # retrive existing block.
+            self.timestamp, self.nonce, self.hashcode = timestamp, nonce, hashcode
+        else:  # mine block
+            if timestamp:   # fixed timestamp. For genesis block generation
+                self.timestamp = timestamp    
+            else:
+                self.timestamp = str(datetime.datetime.now())
+            self.nonce, self.hashcode = self.proof_of_work()
     
     def __str__(self):
         block_dict = self.to_dict()
@@ -58,7 +70,6 @@ class Block:
         }
         return block_dict
         
-
         
     # attribute account into hash: timestamp, prev_hash, transactions hash, nonce
     def proof_of_work(self):
@@ -85,7 +96,14 @@ class Block:
             
     @staticmethod
     def new_genesis_block():
-        return Block(prev_hash="000", transactions=set())
+        return Block(prev_hash="000", transactions=[], timestamp="genesis time")
+
+    @staticmethod
+    def retrive_from_dict(d):
+        return Block(d['prev_hash'], d['transactions'], timestamp=d['timestamp'],
+                        nonce=d['nonce'], hashcode=d['hashcode']) 
+        
+        
 
 
 class BlockChain:
@@ -94,7 +112,7 @@ class BlockChain:
         self.lock = Lock()
 
     def mine_block(self, miner, transactions):
-        transactions.add(Transaction.reward_transaction(miner)) 
+        txs_to_add = transactions + [Transaction.reward_transaction(miner)]
         prev_block = self.last_block()
         new_block = Block(prev_block.hashcode, transactions)
         return new_block
@@ -105,11 +123,13 @@ class BlockChain:
     def last_block(self):
         return self.blocks[-1]
 
+    def to_dict(self):
+        return {
+            'blocks':[block.to_dict() for block in self.blocks] 
+        }
+
     def __str__(self):
-        string = ""
-        for block in self.blocks:
-            string = string + str(block) + '\n'
-        return string
+        return json.dumps(self.to_dict())
 
     def validate_new_block(self, new_block):
         return BlockChain.validate_block(self.last_block(), new_block)
@@ -117,11 +137,11 @@ class BlockChain:
     @staticmethod
     def validate_block(prev_block, block):
         if not isinstance(block, Block):
-            return false
+            return False 
         if not prev_block.hashcode == block.prev_hash:
-            return false
+            return False
         if not block.calculate_hash() == block.hashcode:
-            return false
+            return False
         return True
         
 

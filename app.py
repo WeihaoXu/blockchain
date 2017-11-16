@@ -12,33 +12,32 @@ import requests
 
 
 
-
-
-
 class Mine(MethodView):
     def get(self):
-        blockchain, pending_transactions = nodedata.blockchain, nodedata.pending_transactions
-        txs_to_include = self.select_transactions()
-        block = blockchain.mine_block(__name__, txs_to_include)
+        blockchain, tx_pool = nodedata.blockchain, nodedata.transaction_pool
+        txs_to_include = self.select_transaction_set()
+        block = blockchain.mine_block(__name__, list(txs_to_include))
         with blockchain.lock:
             if blockchain.validate_new_block(block):
                 blockchain.add_block(block)
                 self.broadcast_new_block(block)
-                pending_transactions -= txs_to_include
+                with tx_pool.lock:
+                    tx_pool.transactions-= txs_to_include
                 return str(blockchain)
             return "block to add is invalid"
 
-    def select_transactions(self):
+    def select_transaction_set(self):
         selected = set()
-        for tx in nodedata.pending_transactions:
-            selected.add(tx)
-            if(len(selected) == nodedata.MAX_TX_PER_BLOCK):
-                break
-        return selected
+        tx_pool = nodedata.transaction_pool
+        with tx_pool.lock:
+            for tx in tx_pool.transactions:
+                selected.add(tx)
+                if(len(selected) == nodedata.MAX_TX_PER_BLOCK):
+                    break
+            return selected
 
 
     def broadcast_new_block(self, block):
-        #TODO send messages to other miners
         block_dict = block.to_dict()
         current_port = current_app.config['port']
         ports = current_app.config['port_list']
@@ -53,14 +52,19 @@ class Mine(MethodView):
             'block': block_dict
         }
         url = 'http://localhost:{}/receive_block'.format(port)
-        #res = requests.post(url, data=json.dumps({'name': 'weihao'}))
         res = requests.post(url, data=json.dumps(message))
         
 class ReceiveBlock(MethodView):
     def post(self):
+        blockchain = nodedata.blockchain
         data = flask.request.data
         data = json.loads(data.decode('utf-8'))
         print(data)
+        block = Block.retrive_from_dict(data['block'])
+        with blockchain.lock:
+            if blockchain.validate_new_block(block):
+                blockchain.add_block(block)
+        print(blockchain)
         return 'ok', 200
         
     
@@ -72,7 +76,7 @@ class ReceiveTransaction(MethodView):
 class ViewChain(MethodView):
     def get(self):
         response = {
-            'chain': nodedata.block_chain.blocks,
+            'chain': nodedata.blockchain.to_dict(),
             'length': len(nodedata.blockchain.blocks),
         }
         return jsonify(response), 200
