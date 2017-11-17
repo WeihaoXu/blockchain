@@ -23,7 +23,7 @@ class Mine(MethodView):
                 self.broadcast_new_block(block)
                 with tx_pool.lock:
                     tx_pool.transactions-= txs_to_include
-                return str(blockchain)
+                return jsonify(nodedata.get_blockchain_for_view())
             return "block to add is invalid"
 
     def select_transaction_set(self):
@@ -47,12 +47,15 @@ class Mine(MethodView):
             self.send_Block_Info(peer_port, block_dict)
 
     def send_Block_Info(self, port, block_dict):
-        message = {
-            'miner': current_app.config['port'],
-            'block': block_dict
-        }
-        url = 'http://localhost:{}/receive_block'.format(port)
-        res = requests.post(url, data=json.dumps(message))
+        try:
+            message = {
+                'miner': current_app.config['port'],
+                'block': block_dict
+            }
+            url = 'http://localhost:{}/receive_block'.format(port)
+            res = requests.post(url, data=json.dumps(message))
+        except:
+            print("send block into to {} faild".format(port))
         
 class ReceiveBlock(MethodView):
     def post(self):
@@ -71,29 +74,27 @@ class ReceiveBlock(MethodView):
   
 class ReceiveTransaction(MethodView):
     def get(self):
-        return "We'll add a new transaction"
+        with nodedata.transaction_pool.lock:
+            nodedata.transaction_pool.transactions.add()
+            
 
 class ViewChain(MethodView):
     def get(self):
-        response = {
-            'chain': nodedata.blockchain.to_dict(),
-            'length': len(nodedata.blockchain.blocks),
-        }
-        return jsonify(response), 200
+        blockchain = nodedata.get_blockchain_for_view()
+        return jsonify(blockchain), 200
 
 
 if __name__ == '__main__':
-    if(len(sys.argv) != 2):
-        raise(Exception("please identify port to use"))
+    if len(sys.argv) != 3:
+        raise(Exception('please run CMD: python app.py <PORT> <PORT_LIST>'))
     port = sys.argv[1]
-    app = Flask("node" + port) 
+    port_list = sys.argv[2].split()
+    app = Flask("node_" + port) 
     app.config.update(DEBUG=True)
-    app.config['host'] = 'localhost'
     app.config['port'] = port
-    app.config['port_list'] = ['5000', '5001']
+    app.config['port_list'] = port_list
     app.add_url_rule('/mine', view_func=Mine.as_view('mine'))
     app.add_url_rule('/receive', view_func=ReceiveTransaction.as_view('receive'))
     app.add_url_rule('/view', view_func=ViewChain.as_view('view'))
     app.add_url_rule('/receive_block', view_func=ReceiveBlock.as_view('receive_block'))
     app.run(host=nodedata.HOST, port=int(port), threaded=True, use_debugger=True)
-
