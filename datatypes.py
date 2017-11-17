@@ -7,11 +7,14 @@ from threading import Lock
 
 class Transaction:
     MINER_REWARD= 1
-    def __init__(self, sender, receiver, value):
+    def __init__(self, sender, receiver, value, timestamp=None):
         self.sender = sender
         self.receiver = receiver
         self.value = value
-        self.timestamp = str(datetime.datetime.now())
+        if not timestamp:
+            self.timestamp = str(datetime.datetime.now())
+        else:
+            self.timestamp = timestamp
         self.hashcode = self.calculate_hash()
 
 
@@ -43,6 +46,11 @@ class Transaction:
     @staticmethod
     def reward_transaction(miner):
         return Transaction(None, miner, Transaction.MINER_REWARD)
+
+    @staticmethod
+    def retrive_from_dict(tx_dict):
+        return Transaction(tx_dict['sender'], tx_dict['receiver'], 
+                    tx_dict['value'], timestamp=tx_dict['timestamp'])
 
         
 
@@ -111,7 +119,12 @@ class Block:
 
     @staticmethod
     def retrive_from_dict(d):
-        return Block(d['prev_hash'], d['transactions'], timestamp=d['timestamp'],
+        tx_dicts = d['transactions']
+        transactions = []
+        for tx_dict in tx_dicts:
+            tx = Transaction.retrive_from_dict(tx_dict)
+            transactions.append(tx)
+        return Block(d['prev_hash'], transactions, timestamp=d['timestamp'],
                         nonce=d['nonce'], hashcode=d['hashcode']) 
         
         

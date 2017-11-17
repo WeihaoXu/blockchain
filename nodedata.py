@@ -6,6 +6,7 @@ MAX_TX_PER_BLOCK = 10
 
 blockchain = BlockChain()
 transaction_pool = TransactionPool() 
+done_transactions = set()
 
 def get_blockchain_for_view():
     blockchain_data = {

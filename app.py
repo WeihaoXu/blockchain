@@ -6,33 +6,36 @@ from flask import Flask, jsonify, request
 from flask.views import MethodView
 from datatypes import Block, BlockChain, Transaction
 from threading import Lock
-import nodedata 
 from flask import current_app
 import requests
+
+import nodedata
+from nodedata import blockchain, transaction_pool, done_transactions 
+from nodedata import MAX_TX_PER_BLOCK, get_blockchain_for_view
+
 
 
 
 class Mine(MethodView):
     def get(self):
-        blockchain, tx_pool = nodedata.blockchain, nodedata.transaction_pool
-        txs_to_include = self.select_transaction_set()
-        block = blockchain.mine_block(__name__, list(txs_to_include))
-        with blockchain.lock:
-            if blockchain.validate_new_block(block):
-                blockchain.add_block(block)
-                self.broadcast_new_block(block)
-                with tx_pool.lock:
-                    tx_pool.transactions-= txs_to_include
-                return jsonify(nodedata.get_blockchain_for_view())
-            return "block to add is invalid"
+        while True:
+            print("mining")
+            txs_to_include = self.select_transaction_set()
+            with blockchain.lock:
+                block = blockchain.mine_block(current_app.config['port'], list(txs_to_include))
+                if blockchain.validate_new_block(block):
+                    blockchain.add_block(block)
+                    self.broadcast_new_block(block)
+                    with transaction_pool.lock:
+                        transaction_pool.transactions-= txs_to_include
+                    done_transactions.update(txs_to_include)
 
     def select_transaction_set(self):
         selected = set()
-        tx_pool = nodedata.transaction_pool
-        with tx_pool.lock:
-            for tx in tx_pool.transactions:
+        with transaction_pool.lock:
+            for tx in transaction_pool.transactions:
                 selected.add(tx)
-                if(len(selected) == nodedata.MAX_TX_PER_BLOCK):
+                if(len(selected) == MAX_TX_PER_BLOCK):
                     break
             return selected
 
@@ -59,7 +62,6 @@ class Mine(MethodView):
         
 class ReceiveBlock(MethodView):
     def post(self):
-        blockchain = nodedata.blockchain
         data = flask.request.data
         data = json.loads(data.decode('utf-8'))
         print(data)
@@ -67,20 +69,49 @@ class ReceiveBlock(MethodView):
         with blockchain.lock:
             if blockchain.validate_new_block(block):
                 blockchain.add_block(block)
-        print(blockchain)
         return 'ok', 200
         
     
   
 class ReceiveTransaction(MethodView):
-    def get(self):
-        with nodedata.transaction_pool.lock:
-            nodedata.transaction_pool.transactions.add()
+    def post(self):
+        data = flask.request.form
+        sender = data.get('sender')
+        receiver = data.get('receiver')
+        value = data.get('value')
+        timestamp = data.get('timestamp')
+        tx = Transaction(sender, receiver, value, timestamp=timestamp) # retrive from post
+        with transaction_pool.lock:
+            if (tx in transaction_pool.transactions) or (tx in done_transactions):
+                print("receive duplicate transaction")
+                return 'duplicate transactions', 200
+            transaction_pool.transactions.add(tx)
+        self.broadcast_tx_req(tx)
+        return 'ok', 200
+
+    def broadcast_tx_req(self, tx):
+        tx_dict = tx.to_dict()
+        current_port = current_app.config['port']
+        ports = current_app.config['port_list']
+        for peer_port in ports:
+            if peer_port == current_port:
+                continue
+            self.send_tx_req(peer_port, tx_dict)
+
+    def send_tx_req(self, port, tx_dict):
+        try:
+            url = 'http://localhost:{}/receive_transaction'.format(port)  
+            session = requests.Session()  
+            session.post(url, data=tx_dict)
+        except:
+            print("send transaction from {} to {} faild".
+                    format(current_app.config['port'], port))
+        
             
 
 class ViewChain(MethodView):
     def get(self):
-        blockchain = nodedata.get_blockchain_for_view()
+        blockchain = get_blockchain_for_view()
         return jsonify(blockchain), 200
 
 
@@ -94,7 +125,7 @@ if __name__ == '__main__':
     app.config['port'] = port
     app.config['port_list'] = port_list
     app.add_url_rule('/mine', view_func=Mine.as_view('mine'))
-    app.add_url_rule('/receive', view_func=ReceiveTransaction.as_view('receive'))
+    app.add_url_rule('/receive_transaction', view_func=ReceiveTransaction.as_view('receive_transaction'))
     app.add_url_rule('/view', view_func=ViewChain.as_view('view'))
     app.add_url_rule('/receive_block', view_func=ReceiveBlock.as_view('receive_block'))
     app.run(host=nodedata.HOST, port=int(port), threaded=True, use_debugger=True)
