@@ -78,6 +78,7 @@ class ReceiveBlock(MethodView):
         with blockchain.lock:
             if blockchain.validate_new_block(block):
                 blockchain.add_block(block)
+                self.update_done_txs(set(block.transactions))
                 return 'ok', 200
         if int(data['chain_length']) > blockchain.get_length():
             Thread(target=self.merge_chain_from_peer, args=(data['miner'], )).start()
@@ -100,6 +101,17 @@ class ReceiveBlock(MethodView):
             if not received_chain.validate_chain():
                 return
             blockchain.blocks = received_blocks
+            received_transactions = received_chain.get_transactions()
+            with transaction_pool.lock:
+                done_transactions = received_transactions
+                transaction_pool.transactions -= done_transactions
+
+    def update_done_txs(self, tx_set):
+        with transaction_pool.lock:
+            done_transactions.update(tx_set) 
+            transaction_pool.transactions -= tx_set
+
+                
         
     
   

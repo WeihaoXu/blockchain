@@ -62,7 +62,7 @@ class TransactionPool:
 
 
 class Block:
-    TARGET_DIGITS = 5
+    TARGET_DIGITS = 4
     def __init__(self, prev_hash, transactions, timestamp=None, nonce=None, hashcode=None):
         self.prev_hash = prev_hash
         self.transactions = transactions 
@@ -182,6 +182,12 @@ class BlockChain:
             if not self.validate_block(self.blocks[i], self.blocks[i + 1]):
                 return False
         return True
+
+    def get_transactions(self):
+        result = set()
+        for block in self.blocks:
+            result.update(set(block.transactions))
+        return result
 
     @staticmethod
     def validate_block(prev_block, block):
