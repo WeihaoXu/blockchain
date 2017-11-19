@@ -5,9 +5,10 @@ import flask
 from flask import Flask, jsonify, request
 from flask.views import MethodView
 from datatypes import Block, BlockChain, Transaction
-from threading import Lock
+from threading import Lock, Thread
 from flask import current_app
 import requests
+import traceback
 
 import nodedata
 from nodedata import blockchain, transaction_pool, done_transactions 
@@ -17,15 +18,23 @@ from nodedata import MAX_TX_PER_BLOCK, get_blockchain_for_view
 
 
 class Mine(MethodView):
+    is_mining = False
     def get(self):
+        if not self.is_mining:
+            current_port = current_app.config['port']
+            port_list = current_app.config['port_list']
+            self.is_mining = True
+            Thread(target=self.mine, args=(current_port, port_list)).start()
+            return "mining", 200 
+    def mine(self, current_port, port_list):
         while True:
             print("mining")
             txs_to_include = self.select_transaction_set()
+            block = blockchain.mine_block(current_port, list(txs_to_include))
             with blockchain.lock:
-                block = blockchain.mine_block(current_app.config['port'], list(txs_to_include))
                 if blockchain.validate_new_block(block):
                     blockchain.add_block(block)
-                    self.broadcast_new_block(block)
+                    self.broadcast_new_block(block, current_port, port_list)
                     with transaction_pool.lock:
                         transaction_pool.transactions-= txs_to_include
                     done_transactions.update(txs_to_include)
@@ -40,36 +49,57 @@ class Mine(MethodView):
             return selected
 
 
-    def broadcast_new_block(self, block):
+    def broadcast_new_block(self, block, current_port, ports):
         block_dict = block.to_dict()
-        current_port = current_app.config['port']
-        ports = current_app.config['port_list']
         for peer_port in ports:
             if peer_port == current_port:
                 continue
-            self.send_Block_Info(peer_port, block_dict)
+            Thread(target=self.send_block_info, 
+                        args=(current_port, peer_port, block_dict)).start()
 
-    def send_Block_Info(self, port, block_dict):
+    def send_block_info(self, current_port, peer_port, block_dict):
         try:
             message = {
-                'miner': current_app.config['port'],
-                'block': block_dict
+                'miner': current_port,
+                'block': block_dict,
+                'chain_length': blockchain.get_length()
             }
-            url = 'http://localhost:{}/receive_block'.format(port)
+            url = 'http://localhost:{}/receive_block'.format(peer_port)
             res = requests.post(url, data=json.dumps(message))
-        except:
-            print("send block into to {} faild".format(port))
+        except Exception as e:
+            print("send block info from {} to {} faild".format(current_port, peer_port))
+            print(e)
         
 class ReceiveBlock(MethodView):
     def post(self):
         data = flask.request.data
         data = json.loads(data.decode('utf-8'))
-        print(data)
         block = Block.retrive_from_dict(data['block'])
         with blockchain.lock:
             if blockchain.validate_new_block(block):
                 blockchain.add_block(block)
-        return 'ok', 200
+                return 'ok', 200
+        if int(data['chain_length']) > blockchain.get_length():
+            Thread(target=self.merge_chain_from_peer, args=(data['miner'], )).start()
+            return 'copy chain from you', 200
+        else:
+            print("validate other's block failed")
+            return "rejected ", 200
+
+    def merge_chain_from_peer(self, port):
+        print ("merge_chain called")
+        url = 'http://localhost:{}/chain'.format(port)
+        res = requests.get(url).json()
+        received_block_dicts = res['chain']['blocks']
+        received_blocks = []
+        for block_dict in received_block_dicts:
+            block = Block.retrive_from_dict(block_dict)
+            received_blocks.append(block)
+        received_chain = BlockChain(received_blocks) 
+        with blockchain.lock:
+            if not received_chain.validate_chain():
+                return
+            blockchain.blocks = received_blocks
         
     
   
@@ -103,11 +133,19 @@ class ReceiveTransaction(MethodView):
             url = 'http://localhost:{}/receive_transaction'.format(port)  
             session = requests.Session()  
             session.post(url, data=tx_dict)
-        except:
+        except Exception as e:
             print("send transaction from {} to {} faild".
                     format(current_app.config['port'], port))
+            print(e)
         
             
+class GetChain(MethodView):
+    # return whole chain in this node.
+    def get(self):
+        blockchain = get_blockchain_for_view()
+        return jsonify(blockchain), 200
+        
+
 
 class ViewChain(MethodView):
     def get(self):
@@ -128,4 +166,5 @@ if __name__ == '__main__':
     app.add_url_rule('/receive_transaction', view_func=ReceiveTransaction.as_view('receive_transaction'))
     app.add_url_rule('/view', view_func=ViewChain.as_view('view'))
     app.add_url_rule('/receive_block', view_func=ReceiveBlock.as_view('receive_block'))
+    app.add_url_rule('/chain', view_func=GetChain.as_view('chain'))
     app.run(host=nodedata.HOST, port=int(port), threaded=True, use_debugger=True)

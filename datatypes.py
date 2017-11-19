@@ -62,7 +62,7 @@ class TransactionPool:
 
 
 class Block:
-    TARGET_DIGITS = 4
+    TARGET_DIGITS = 5
     def __init__(self, prev_hash, transactions, timestamp=None, nonce=None, hashcode=None):
         self.prev_hash = prev_hash
         self.transactions = transactions 
@@ -88,7 +88,10 @@ class Block:
             'hashcode': self.hashcode
         }
         return block_dict
-        
+    def hash_equal(self, other):
+        if not isinstance(other, Block):
+            return False
+        return self.hashcode == other.hashcode
         
     # attribute account into hash: timestamp, prev_hash, transactions hash, nonce
     def proof_of_work(self):
@@ -131,9 +134,12 @@ class Block:
 
 
 class BlockChain:
-    def __init__(self):
-        self.blocks = [Block.new_genesis_block()]
+    def __init__(self, blocks=None):
         self.lock = Lock()
+        if not blocks:
+            self.blocks = [Block.new_genesis_block()]
+        else:
+            self.blocks = blocks
 
     def mine_block(self, miner, transactions):
         txs_to_add = transactions + [Transaction.reward_transaction(miner)]
@@ -144,12 +150,22 @@ class BlockChain:
     def add_block(self, mined_block):
         self.blocks.append(mined_block)
 
+    def get_block(self, index):
+        if index >= self.get_length():
+            return None
+        return self.blocks[index]
+
     def last_block(self):
         return self.blocks[-1]
 
     def to_dict(self):
+        blocks = []
+        for i in range(self.get_length()):
+            block_dict = self.blocks[i].to_dict()
+            block_dict['index'] = i
+            blocks.append(block_dict)
         return {
-            'blocks':[block.to_dict() for block in self.blocks] 
+            'blocks': blocks,
         }
 
     def __str__(self):
@@ -158,15 +174,30 @@ class BlockChain:
     def validate_new_block(self, new_block):
         return BlockChain.validate_block(self.last_block(), new_block)
 
+    def get_length(self):
+        return len(self.blocks)
+
+    def validate_chain(self):
+        for i in range(self.get_length() - 1):
+            if not self.validate_block(self.blocks[i], self.blocks[i + 1]):
+                return False
+        return True
+
     @staticmethod
     def validate_block(prev_block, block):
         if not isinstance(block, Block):
             return False 
-        if not prev_block.hashcode == block.prev_hash:
+        if prev_block.hashcode != block.prev_hash:
             return False
-        if not block.calculate_hash() == block.hashcode:
+        if prev_block.hashcode[0:Block.TARGET_DIGITS] != '0' * Block.TARGET_DIGITS:
+            return False
+        if block.calculate_hash() != block.hashcode:
             return False
         return True
+
+
+    
+
         
 
             
@@ -176,9 +207,9 @@ class BlockChain:
 
 if __name__ == "__main__":
     bc = BlockChain()
-    block1 = bc.mine_block('miner1', {Transaction('Tom', 'Mike', 20)})
+    block1 = bc.mine_block('miner1', [Transaction('Tom', 'Mike', 20)])
     bc.add_block(block1)
-    block2 = bc.mine_block('miner2', {Transaction('Mike', 'George', 20)})
+    block2 = bc.mine_block('miner2', [Transaction('Mike', 'George', 20)])
     bc.add_block(block2)
     print(bc)
 
