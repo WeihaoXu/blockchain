@@ -10,14 +10,17 @@
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
 
+    <link href="https://gitcdn.github.io/bootstrap-toggle/2.2.2/css/bootstrap-toggle.min.css" rel="stylesheet">
+    <script src="https://gitcdn.github.io/bootstrap-toggle/2.2.2/js/bootstrap-toggle.min.js"></script>
+
     <style>
         .block-data {
-            font-size: 60%; 
+            font-size: 80%; 
             line-height: 30%;
         }
 
         .block-title {
-            font-size: 60%; 
+            font-size: 80%; 
             font-weight: bold;
             line-height: 60%;
         }
@@ -26,31 +29,38 @@
         }
 
         .box {
-            width: 250px;
+            width: 223px;
             height: 220px;
-            margin: 10px 0px 0px 10px; /*top right left bottom*/
+            margin: 10px 0px 0px 0px; /*top right left bottom*/
         }
 
         .table {
             display:table;
+            border-collapse: collapse;
         }
         .tr {
             display:table-row;
             vertical-align: center;
+            text-align: left;
         }
+
         .td {
             display:table-cell;
             vertical-align: center;
         }
 
         ul {
-            line-height: 70%;
+            line-height: 80%;
         }
 
         li {
             margin: 0px 0px 0px 0px; /*top right left bottom*/
             word-wrap: break-word;
-            line-height: 60%;
+            line-height: 80%;
+        }
+
+        .btn-line {
+            margin: 20px 0px 0px 0px;
         }
 
 
@@ -60,18 +70,38 @@
 
 <body>
 
-    <div class="chains">
-        <div class="table" >
-            <div class="tr" id="chain0">
-            </div>
-            <div class="tr" id="chain1">
-            </div>
-            <div class="tr" id="chain2">
-            </div>
-            <div class="tr" id="chain3">
-            </div>
-            <div class="tr" id="chain4">
-            </div>
+
+    <div class="container">
+        <div id="control-area">
+            <strong>From: </strong> <input type="text" id="tx-from">
+            <strong>To: </strong> <input type="text" id="tx-to">
+            <strong> Amount: </strong> <input type="text" id="tx-value">
+            <select id="port-sel">
+                <option value="5000"> 5000 </option>
+                <option value="5001"> 5001 </option>
+                <option value="5002"> 5002 </option>
+                <option value="5003"> 5003 </option>
+                <option value="5004"> 5004 </option>
+            </select>
+            <button type="button" class="btn btn-primary" id="send-transaction"> Send </button>
+        </div>
+
+        <div>
+            <button type="button" class="btn btn-info" id="refresh-view"> Refresh </button>
+            <button type="button" class="btn btn-success" data-toggle="button" aria-pressed="false" autocomplete="off" id="auto-refresh">
+                Auto Refresh 
+            </button>
+        </div>
+
+        <div class="tr" id="chain0">
+        </div>
+        <div class="tr" id="chain1">
+        </div>
+        <div class="tr" id="chain2">
+        </div>
+        <div class="tr" id="chain3">
+        </div>
+        <div class="tr" id="chain4">
         </div>
     </div>
 
@@ -82,31 +112,31 @@
 
 
     <script id="block_template" type="x-tmpl-mustache">
+    <span>
+        <span> &#8594;</span>
         <div class="td">
             <ul class="list-group box">
                 <li class="list-group-item"> 
-                    <span class="block-title"> previous hash: </span> <br>
-                    <span class="block-data">{{prev_hash}} </span> 
+                    <span class="block-title"> Index: </span> 
+                    <span class="block-data">{{index}} </span> 
                 </li>
                 <li class="list-group-item"> 
-                     <span class="block-title">hashcode: </span> <br>
+                     <span class="block-title">Hashcode: </span> 
                      <span class="block-data">{{hash}} </span> 
                 </li>
                 <li class="list-group-item"> 
-                    <span class="block-title">mined by: </span>
-                    <span class="block-data">{{miner}} </span> 
+                    <span class="block-title"> Prev Hash: </span>
+                    <span class="block-data">{{prev_hash}} </span> 
                 </li>
                 <li class="list-group-item">
                     <span class="block-title">Transactions:</span><br>
-                    <span class="block-data">weihao send NaDu 10 coins <br>
-                    <span class="block-data">adfadf</span><br>
-                    <span class="block-data">adfadf</span>
+                    {{#transactions}}
+                    <span class="block-data"> {{.}} </span> </br>
+                    {{/transactions}}
                 </li>
             </ul>
         </div>
-        <div class="td">
-            <span> &#8594;</span>
-        </div>
+    </span>
     </script>
 
     <script type='text/javascript' src="js/client.js"></script>

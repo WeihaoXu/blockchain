@@ -9,14 +9,16 @@ sample_block = {
 
 
 var PORTS = [5000, 5001, 5002, 5003, 5004]
-var template;
+var template
+var refreshIntervalVar
 
 
 
 
 $(document).ready(function() {
     template = $('#block_template').html()
-    setInterval(update_all_views, 1000)
+    registerButtons()
+    startMining()
 
 })
 
@@ -43,7 +45,7 @@ function updateChain(port, chainNumber) {
         dataType: 'json',
         success: function(data){
             var blocks = data['blocks']
-            console.log("get data successful")
+            console.log(blocks)
             renderData(chainNumber, blocks)
         },
     });
@@ -62,12 +64,80 @@ function renderData(chainNumber, blocks) {
 function renderBlock(block_dict) {
     //Render the data into the template
     var block = Mustache.render(template, {
+        index: block_dict["index"], 
         prev_hash: block_dict["prev_hash"], 
         hash: block_dict["hashcode"],
-        miner: "weihao" 
+        transactions: block_dict["transactions"]
     })
     return block
 }
+
+function registerButtons() {
+    $("#refresh-view").click(function(){
+        update_all_views()
+    })
+
+    $("#auto-refresh").click(function(){
+        $(this).toggleClass('active')
+        if($(this).hasClass('active')) {
+            refreshIntervalVar = setInterval(update_all_views, 1000)
+        }
+        else {
+            clearInterval(refreshIntervalVar)
+        }
+    })
+
+    $("#send-transaction").click(function() {
+        var port = $("#port-sel").val()
+        send_tx_url = "http://localhost:" + port + "/receive_transaction"
+        transaction = {
+            "sender": $("#tx-from").val(),
+            "receiver": $("#tx-to").val(),
+            "value": $("#tx-value").val(),
+            "timestamp": new Date().toString()
+        }
+
+        $.ajax({
+            url: send_tx_url, 
+            type: 'POST',
+            data: transaction,
+            crossDomain: true,
+            dataType: 'json',
+            success: function(data){
+                alert("transaction sent")
+            }
+        });
+    })
+}
+
+function startMining() {
+    for(var i = 0; i < PORTS.length; i++) {
+        startPort(PORTS[i])
+    }
+}
+
+function startPort(port) {
+    mineURL = "http://localhost:" + port + "/mine"
+    $.ajax({
+        url: mineURL, 
+        type: 'GET',
+        crossDomain: true,
+        dataType: 'json',
+        success: function(data){
+            alert("port " + port + "start mining")
+        }
+    });
+}
+
+
+
+
+
+
+
+
+
+
 
 
 

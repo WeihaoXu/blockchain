@@ -35,6 +35,9 @@ class Transaction:
         tx_dict = self.to_dict()
         return json.dumps(tx_dict, sort_keys=True, indent=4)
 
+    def to_view_str(self):
+        return ("{} -> {} ${}"
+                    .format(self.sender, self.receiver, self.value))
 
     def __eq__(self, other):
         return isinstance(other, Transaction) and ([self.sender, self.receiver, self.value, self.timestamp, self.hashcode] 
@@ -45,7 +48,8 @@ class Transaction:
 
     @staticmethod
     def reward_transaction(miner):
-        return Transaction(None, miner, Transaction.MINER_REWARD)
+        reward_tx = Transaction("System Reward", miner, Transaction.MINER_REWARD)
+        return reward_tx
 
     @staticmethod
     def retrive_from_dict(tx_dict):
@@ -88,6 +92,17 @@ class Block:
             'hashcode': self.hashcode
         }
         return block_dict
+
+    def to_view_dict(self):
+        block_dict = {
+            'timestamp': self.timestamp,
+            'prev_hash': self.prev_hash,
+            'nonce': self.nonce,
+            'transactions': [tx.to_view_str() for tx in self.transactions],
+            'hashcode': self.hashcode
+        }
+        return block_dict
+
     def hash_equal(self, other):
         if not isinstance(other, Block):
             return False
@@ -142,9 +157,11 @@ class BlockChain:
             self.blocks = blocks
 
     def mine_block(self, miner, transactions):
-        txs_to_add = transactions + [Transaction.reward_transaction(miner)]
+        reward_tx = Transaction.reward_transaction(miner)
+        txs_to_add = transactions + [reward_tx]
         prev_block = self.last_block()
-        new_block = Block(prev_block.hashcode, transactions)
+        new_block = Block(prev_block.hashcode, txs_to_add)
+        #print("mined new block:" + str(new_block))
         return new_block
 
     def add_block(self, mined_block):

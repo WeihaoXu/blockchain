@@ -129,7 +129,9 @@ class ReceiveTransaction(MethodView):
                 return 'duplicate transactions', 200
             transaction_pool.transactions.add(tx)
         self.broadcast_tx_req(tx)
-        return 'ok', 200
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
 
     def broadcast_tx_req(self, tx):
         tx_dict = tx.to_dict()
