@@ -10,6 +10,14 @@ done_transactions = set()
 
 def get_blockchain_for_view():
     blockchain_data = {
+        'chain': [block.to_dict() for block in blockchain.blocks[:5]],
+        'length': len(blockchain.blocks)
+    }
+    return blockchain_data
+
+
+def get_blockchain():
+    blockchain_data = {
         'chain': blockchain.to_dict(),
         'length': len(blockchain.blocks)
     }

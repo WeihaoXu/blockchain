@@ -1,0 +1,116 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.3.0/mustache.min.js"></script>
+    <script
+        src="https://code.jquery.com/jquery-3.2.1.min.js"
+        integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+        crossorigin="anonymous"></script>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+
+    <style>
+        .block-data {
+            font-size: 60%; 
+            line-height: 30%;
+        }
+
+        .block-title {
+            font-size: 60%; 
+            font-weight: bold;
+            line-height: 60%;
+        }
+
+        .chains {
+        }
+
+        .box {
+            width: 250px;
+            height: 220px;
+            margin: 10px 0px 0px 10px; /*top right left bottom*/
+        }
+
+        .table {
+            display:table;
+        }
+        .tr {
+            display:table-row;
+            vertical-align: center;
+        }
+        .td {
+            display:table-cell;
+            vertical-align: center;
+        }
+
+        ul {
+            line-height: 70%;
+        }
+
+        li {
+            margin: 0px 0px 0px 0px; /*top right left bottom*/
+            word-wrap: break-word;
+            line-height: 60%;
+        }
+
+
+    </style>
+
+</head>
+
+<body>
+
+    <div class="chains">
+        <div class="table" >
+            <div class="tr" id="chain0">
+            </div>
+            <div class="tr" id="chain1">
+            </div>
+            <div class="tr" id="chain2">
+            </div>
+            <div class="tr" id="chain3">
+            </div>
+            <div class="tr" id="chain4">
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+
+
+    <script id="block_template" type="x-tmpl-mustache">
+        <div class="td">
+            <ul class="list-group box">
+                <li class="list-group-item"> 
+                    <span class="block-title"> previous hash: </span> <br>
+                    <span class="block-data">{{prev_hash}} </span> 
+                </li>
+                <li class="list-group-item"> 
+                     <span class="block-title">hashcode: </span> <br>
+                     <span class="block-data">{{hash}} </span> 
+                </li>
+                <li class="list-group-item"> 
+                    <span class="block-title">mined by: </span>
+                    <span class="block-data">{{miner}} </span> 
+                </li>
+                <li class="list-group-item">
+                    <span class="block-title">Transactions:</span><br>
+                    <span class="block-data">weihao send NaDu 10 coins <br>
+                    <span class="block-data">adfadf</span><br>
+                    <span class="block-data">adfadf</span>
+                </li>
+            </ul>
+        </div>
+        <div class="td">
+            <span> &#8594;</span>
+        </div>
+    </script>
+
+    <script type='text/javascript' src="js/client.js"></script>
+</body>
+
+
+</html>

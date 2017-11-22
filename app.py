@@ -12,7 +12,7 @@ import traceback
 
 import nodedata
 from nodedata import blockchain, transaction_pool, done_transactions 
-from nodedata import MAX_TX_PER_BLOCK, get_blockchain_for_view
+from nodedata import MAX_TX_PER_BLOCK, get_blockchain_for_view, get_blockchain
 
 
 
@@ -154,8 +154,10 @@ class ReceiveTransaction(MethodView):
 class GetChain(MethodView):
     # return whole chain in this node.
     def get(self):
-        blockchain = get_blockchain_for_view()
-        return jsonify(blockchain), 200
+        blockchain = get_blockchain()
+        response = jsonify(blockchain)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
         
 
 

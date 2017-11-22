@@ -62,7 +62,7 @@ class TransactionPool:
 
 
 class Block:
-    TARGET_DIGITS = 4
+    TARGET_DIGITS = 6
     def __init__(self, prev_hash, transactions, timestamp=None, nonce=None, hashcode=None):
         self.prev_hash = prev_hash
         self.transactions = transactions 
