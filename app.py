@@ -164,7 +164,9 @@ class GetChain(MethodView):
 class ViewChain(MethodView):
     def get(self):
         blockchain = get_blockchain_for_view()
-        return jsonify(blockchain), 200
+        response = jsonify(blockchain)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
 
 
 if __name__ == '__main__':

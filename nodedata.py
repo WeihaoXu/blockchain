@@ -9,8 +9,10 @@ transaction_pool = TransactionPool()
 done_transactions = set()
 
 def get_blockchain_for_view():
+    chain_len = len(blockchain.blocks) 
+
     blockchain_data = {
-        'chain': [block.to_dict() for block in blockchain.blocks[:5]],
+        'blocks': [block.to_dict() for block in blockchain.blocks[-5:]],
         'length': len(blockchain.blocks)
     }
     return blockchain_data

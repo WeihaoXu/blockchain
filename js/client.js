@@ -35,14 +35,14 @@ function update_view(chainNumber) {
 }
 
 function updateChain(port, chainNumber) {
-    var getChainUrl = "http://127.0.0.1:" + port + "/chain"
+    var getChainUrl = "http://127.0.0.1:" + port + "/view"
     $.ajax({
         url: getChainUrl, 
         type: 'GET',
         crossDomain: true,
         dataType: 'json',
         success: function(data){
-            var blocks = data['chain']['blocks']
+            var blocks = data['blocks']
             console.log("get data successful")
             renderData(chainNumber, blocks)
         },
